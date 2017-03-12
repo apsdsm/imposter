@@ -21,21 +21,29 @@ import (
 
 // A Fake is an embeddable struct that makes it easier for fake classes to record method calls.
 type Fake struct {
-	calls map[string][]interface{}
+	calls   map[string][]interface{}
+	returns map[string][]interface{}
 }
 
 // Received checks to see if the specified method was called with the given parameters. It
 // returns true if it finds an exact match, and false in all other cases.
-func (f *Fake) Received(method string, signature interface{}) bool {
-
+func (f *Fake) Received(method string, signature ...interface{}) bool {
 	if f.calls == nil {
 		panic("no calls were made to this object.")
 	}
 
+	checksiglen := len(signature)
+
+	if checksiglen > 1 {
+		panic("to check multiple calls to this method, call 'Received' multiple times.")
+	}
+
 	if sig, ok := f.calls[method]; ok {
 		for _, s := range sig {
-			if s == signature {
-				return true
+			if checksiglen == 0 {
+				return s == nil
+			} else if checksiglen == 1 {
+				return s == signature[0]
 			}
 		}
 	} else {
@@ -72,12 +80,18 @@ func getSignatureString(signature interface{}) (rep string) {
 	return rep
 }
 
-// setCall is used to record a new call to the specified method, recording the parameters
+// SetCall is used to record a new call to the specified method, recording the parameters
 // that were passed.
-func (f *Fake) setCall(method string, signature interface{}) {
+func (f *Fake) SetCall(method string, signature ...interface{}) {
 	if f.calls == nil {
 		f.calls = make(map[string][]interface{})
 	}
 
-	f.calls[method] = append(f.calls[method], signature)
+	if len(signature) == 0 {
+		f.calls[method] = append(f.calls[method], nil)
+	} else {
+		for _, s := range signature {
+			f.calls[method] = append(f.calls[method], s)
+		}
+	}
 }
