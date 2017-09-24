@@ -26,19 +26,84 @@ func (f *Foo) DoIt2(a int, b bool, c string) {
 }
 
 var _ = Describe("Fake", func() {
-	It("reports if method with no parameters was called", func() {
-		f := Foo{}
 
-		f.DoIt()
+	var (
+		f Foo
+	)
 
-		Expect(f.Received("DoIt")).To(BeTrue())
+	BeforeEach(func() {
+		f = Foo{}
 	})
 
-	It("reports if method with parameters was called", func() {
-		f := Foo{}
+	Context("Received", func() {
+		It("return true if method with no parameters was called", func() {
+			f.DoIt()
 
-		f.DoIt2(1, true, "foobar")
+			Expect(f.Received("DoIt")).To(BeTrue())
+		})
 
-		Expect(f.Received("DoIt2", DoIt2Sig{1, true, "foobar"})).To(BeTrue())
+		It("returns true if method with parameters was called", func() {
+			f.DoIt2(1, true, "foobar")
+
+			Expect(f.Received("DoIt2", DoIt2Sig{1, true, "foobar"})).To(BeTrue())
+		})
+
+		It("panics if no methods were called", func() {
+			Expect(func() {
+				f.Received("DoIt")
+			}).To(Panic())
+		})
+
+		It("panics if method was not called (but different method was called)", func() {
+			f.DoIt2(1, true, "foo")
+
+			Expect(func() {
+				f.Received("DoIt")
+			}).To(Panic())
+		})
+
+		It("panics if method with parameters was not called (but same method with different parameters was called)", func() {
+			f.DoIt2(1, true, "foo")
+
+			Expect(func() {
+				f.Received("DoIt2", DoIt2Sig{2, false, "bar"})
+			}).To(Panic())
+		})
 	})
+
+	Context("DidNotReceive", func() {
+
+		It("returns true if no methods were called", func() {
+			Expect(f.DidNotReceive("DoIt")).To(BeTrue())
+		})
+
+		It("returns true if method not called (but different method was called)", func() {
+			f.DoIt2(1, true, "foo")
+
+			Expect(f.DidNotReceive("DoIt")).To(BeTrue())
+		})
+
+		It("returns true if method was called with different parameters", func() {
+			f.DoIt2(1, true, "foo")
+
+			Expect(f.DidNotReceive("DoIt2", DoIt2Sig{2, false, "bar"})).To(BeTrue())
+		})
+
+		It("panics if method was called", func() {
+			f.DoIt()
+
+			Expect(func() {
+				f.DidNotReceive("DoIt")
+			}).To(Panic())
+		})
+
+		It("panics if method with parameters was called", func() {
+			f.DoIt2(1, true, "foo")
+
+			Expect(func() {
+				f.DidNotReceive("DoIt2", DoIt2Sig{1, true, "foo"})
+			}).To(Panic())
+		})
+	})
+
 })

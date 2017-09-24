@@ -40,10 +40,8 @@ func (f *Fake) Received(method string, signature ...interface{}) bool {
 
 	if sig, ok := f.calls[method]; ok {
 		for _, s := range sig {
-			if checksiglen == 0 {
-				return s == nil
-			} else if checksiglen == 1 {
-				return s == signature[0]
+			if (checksiglen == 0 && s == nil) || s == signature[0] {
+				return true
 			}
 		}
 	} else {
@@ -60,6 +58,30 @@ func (f *Fake) Received(method string, signature ...interface{}) bool {
 	}
 
 	panic(res)
+}
+
+// DidNotReceive returns true if no calls were registered against the specified method.
+func (f *Fake) DidNotReceive(method string, signature ...interface{}) bool {
+
+	checksiglen := len(signature)
+
+	if checksiglen > 1 {
+		panic("to check multiple calls to this method, call 'Received' multiple times.")
+	}
+
+	if f.calls == nil {
+		return true
+	}
+
+	if sig, ok := f.calls[method]; ok {
+		for _, s := range sig {
+			if (checksiglen == 0 && s == nil) || s == signature[0] {
+				panic("did not expect to receive to receive calls to " + method + " but one was received.")
+			}
+		}
+	}
+
+	return true
 }
 
 // getSignatureString returns a string representation of a signature (or any interface)
